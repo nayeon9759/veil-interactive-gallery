@@ -1877,7 +1877,7 @@ function goTo(id){
    from the box's top-center so it stays anchored at the ceiling —
    recomputed on resize so this holds at any viewport size */
 const HOUSE_IMG_W=1536, HOUSE_IMG_H=1024;
-const LAMP_BOX_X0=1155, LAMP_BOX_Y0=0, LAMP_BOX_W=178, LAMP_BOX_H=230;
+const LAMP_BOX_X0=1155, LAMP_BOX_Y0=0, LAMP_BOX_W=137, LAMP_BOX_H=195;
 function positionLampBox(){
   const vw=window.innerWidth, vh=window.innerHeight;
   const scale=Math.max(vw/HOUSE_IMG_W, vh/HOUSE_IMG_H);
@@ -1885,8 +1885,7 @@ function positionLampBox(){
   const offX=(dispW-vw)/2, offY=(dispH-vh)/2;
   const boxX=LAMP_BOX_X0*scale-offX, boxY=LAMP_BOX_Y0*scale-offY;
   const boxW=LAMP_BOX_W*scale, boxH=LAMP_BOX_H*scale;
-  // back down by 1x from the previous 2x — grows from the box's
-  // top-center (the ceiling attachment point) so the mount stays put
+  // Keep the fixture at the measured marker size and anchor it to the ceiling.
   const ENLARGE=1;
   const cx=boxX+boxW/2;
   const w=boxW*ENLARGE, h=boxH*ENLARGE;
