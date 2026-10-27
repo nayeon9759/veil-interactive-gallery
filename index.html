@@ -494,12 +494,12 @@ html,body{
 @media(hover:hover) and (pointer:fine){#prc-card:not(.prc-user-controlled):not(.prc-auto-flipped):hover .prc-card-rotator{transform:rotateY(180deg);}}
 .prc-face{position:absolute;inset:0;display:block;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
 .prc-front{background:#f4f0e9;}
-.prc-front img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:fill;object-position:center;}
+.prc-front img{position:absolute;inset:-2px;display:block;width:calc(100% + 4px);height:calc(100% + 4px);object-fit:cover;object-position:center;}
 .prc-front::after{content:'';position:absolute;inset:-25% -35%;pointer-events:none;background:linear-gradient(108deg,transparent 39%,rgba(255,255,255,0) 44%,rgba(255,248,227,.62) 50%,rgba(207,170,112,.22) 53%,transparent 60%);transform:translateX(-125%) skewX(-10deg);}
 #phil-result-card.show #prc-card .prc-front::after{animation:prcFoilSweep 1.25s ease-out .28s both;}
 @keyframes prcFoilSweep{0%{transform:translateX(-125%) skewX(-10deg);opacity:0}25%{opacity:.85}100%{transform:translateX(125%) skewX(-10deg);opacity:0}}
 .prc-back{transform:rotateY(180deg);background:#f7f4ee;}
-.prc-back img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:fill;object-position:center;}
+.prc-back img{position:absolute;inset:-2px;display:block;width:calc(100% + 4px);height:calc(100% + 4px);object-fit:cover;object-position:center;}
 .prc-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .prc-ey{font:400 clamp(.85rem,1.4vw,1rem) 'Playfair Display',Georgia,serif;letter-spacing:.02em;color:#5b5148;margin:0 0 22px;}
 .prc-name{max-width:100%;font:400 clamp(1.55rem,4.6vw,2.8rem) 'Veil','Cinzel',serif;letter-spacing:.04em;line-height:1.05;color:#171513;white-space:nowrap;}
@@ -1167,7 +1167,7 @@ html,body{
   </div>
   <div id="phil-result-card">
     <div class="prc-shell">
-      <p id="prc-door-countdown" class="prc-door-countdown" aria-live="polite">카드를 확인해 주세요 · 9초 후 문이 열립니다</p>
+      <p id="prc-door-countdown" class="prc-door-countdown" aria-live="polite">카드를 확인해 주세요 · 5초 후 문이 열립니다</p>
       <button id="prc-card" type="button" aria-label="결과 카드 뒷면 보기" aria-pressed="false">
         <span class="prc-card-rotator">
           <span class="prc-face prc-front"><img id="prc-image" src="" alt=""></span>
@@ -1178,6 +1178,7 @@ html,body{
         </span>
       </button>
       <p id="prc-flip-hint" class="prc-flip-hint">카드를 눌러 앞면과 뒷면을 확인하세요</p>
+      <button id="prc-cta" class="prc-cta" type="button">카드 닫고 갤러리로 이동 →</button>
     </div>
   </div>
 </section>
@@ -2365,7 +2366,7 @@ function philAnswer(value){
 // of the site (booking form, archive header) already reads from
 let prcAutoFlipTimer=null;
 let prcDoorTimer=null,prcDoorFinishTimer=null;
-const PRC_DOOR_WAIT_MS=9000;
+const PRC_DOOR_WAIT_MS=5000;
 let prcDoorRemainingMs=PRC_DOOR_WAIT_MS,prcDoorDeadline=0,prcDoorTickTimer=null,prcDoorPaused=false;
 const prcResultOverlay=document.getElementById('phil-result-card');
 const prcFogPhase=document.getElementById('ph-fog');
@@ -2382,6 +2383,22 @@ function pauseGalleryDoor(){
   prcDoorTimer=null;prcDoorTickTimer=null;prcDoorDeadline=0;prcDoorPaused=true;
   prcDoorCountdown.textContent='카드를 살펴보는 동안 잠시 멈춥니다';
 }
+function openGalleryDoor(){
+  if(prcDoorFinishTimer||phil.doorOpening||!prcResultOverlay.classList.contains('show'))return;
+  clearTimeout(prcDoorTimer);clearInterval(prcDoorTickTimer);
+  prcDoorTimer=null;prcDoorTickTimer=null;prcDoorDeadline=0;prcDoorRemainingMs=0;prcDoorPaused=false;
+  prcDoorCountdown.textContent='문이 열립니다';
+  phil.doorOpening=true;
+  prcResultOverlay.classList.remove('show');
+  prcDoorFinishTimer=setTimeout(()=>{
+    prcDoorFinishTimer=null;
+    if(!prcFogPhase.classList.contains('active'))return;
+    phil.enteringGallery=true;phil.finished=false;phil.gated=false;
+    const hint=document.getElementById('phil-hint');
+    hint.textContent='문이 열렸어요. 계단 입구까지 이동합니다';
+    hint.classList.remove('gone');
+  },1200);
+}
 function scheduleGalleryDoor(resetCountdown=true){
   if(prcDoorFinishTimer)return;
   clearTimeout(prcDoorTimer);
@@ -2395,21 +2412,7 @@ function scheduleGalleryDoor(resetCountdown=true){
     prcDoorTimer=null;
     clearInterval(prcDoorTickTimer);prcDoorTickTimer=null;prcDoorDeadline=0;prcDoorRemainingMs=0;
     if(!prcResultOverlay.classList.contains('show')||!prcFogPhase.classList.contains('active'))return;
-    // Let the corridor dolly carry the visitor only to the open
-    // threshold. Hand off at the TOP of the gallery stairs so the
-    // visitor, rather than the camera, makes the descent.
-    phil.doorOpening=true;
-    prcResultOverlay.classList.remove('show');
-    prcDoorFinishTimer=setTimeout(()=>{
-      prcDoorFinishTimer=null;
-      if(!prcFogPhase.classList.contains('active'))return;
-      phil.enteringGallery=true;
-      phil.finished=false;
-      phil.gated=false;
-      const hint=document.getElementById('phil-hint');
-      hint.textContent='문이 열렸어요. 계단 입구까지 이동합니다';
-      hint.classList.remove('gone');
-    },1900);
+    openGalleryDoor();
   },prcDoorRemainingMs);
   // If the visitor is already inspecting the card when it appears, hold
   // the clock immediately; resume with the saved time when they leave.
@@ -2420,7 +2423,7 @@ function clearGalleryDoorTimers(){
   clearInterval(prcDoorTickTimer);
   prcDoorTimer=null;prcDoorFinishTimer=null;
   prcDoorTickTimer=null;prcDoorDeadline=0;prcDoorRemainingMs=PRC_DOOR_WAIT_MS;prcDoorPaused=false;
-  prcDoorCountdown.textContent='카드를 확인해 주세요 · 9초 후 문이 열립니다';
+  prcDoorCountdown.textContent='카드를 확인해 주세요 · 5초 후 문이 열립니다';
   phil.doorOpening=false;phil.doorOpen=0;phil.enteringGallery=false;
   if(phil.galleryDoor){phil.galleryDoor.left.rotation.y=0;phil.galleryDoor.right.rotation.y=0;}
 }
@@ -2438,6 +2441,7 @@ document.getElementById('prc-card').addEventListener('click',e=>{
 });
 document.getElementById('prc-card').addEventListener('mouseenter',pauseGalleryDoor);
 document.getElementById('prc-card').addEventListener('mouseleave',()=>scheduleGalleryDoor(false));
+document.getElementById('prc-cta').addEventListener('click',openGalleryDoor);
 
 function philShowResultCard(){
   const freq={};
