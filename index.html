@@ -186,6 +186,7 @@ html,body{
   box-shadow:0 0 18px rgba(224,177,107,.38),inset 0 1px 0 rgba(255,255,255,.28);
   transform:translateY(1px);
 }
+.touch-capable #sv-keycap{pointer-events:auto;cursor:pointer;touch-action:none;}
 
 /* ================================================
    PHASE 1 — INTRO  (table scene)
@@ -628,6 +629,38 @@ html,body{
    has no lighter physical face, but font-weight below 400 still
    triggers the browser's synthetic-thin rendering here). */
 .hud-guide-key{font-weight:300;}
+#gal-touch-controls{
+  display:none;position:absolute;left:max(22px,env(safe-area-inset-left));
+  bottom:max(24px,env(safe-area-inset-bottom));z-index:24;
+  grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,50px);gap:6px;
+  pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;
+}
+#gal-touch-controls button{
+  width:50px;height:50px;padding:0;border:1px solid rgba(219,190,149,.42);
+  border-radius:3px;background:rgba(24,19,15,.58);color:rgba(255,246,231,.88);
+  box-shadow:0 4px 18px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.06);
+  font:400 1.15rem Georgia,serif;touch-action:none;user-select:none;-webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;transition:background .16s,border-color .16s,transform .16s;
+}
+#gal-touch-controls button:active,#gal-touch-controls button.is-down{
+  background:rgba(151,112,66,.62);border-color:rgba(235,210,174,.78);transform:translateY(1px);
+}
+#gal-touch-controls [data-move="KeyW"]{grid-column:2;grid-row:1;}
+#gal-touch-controls [data-move="KeyA"]{grid-column:1;grid-row:2;}
+#gal-touch-controls [data-move="KeyS"]{grid-column:2;grid-row:2;}
+#gal-touch-controls [data-move="KeyD"]{grid-column:3;grid-row:2;}
+#ph-gallery.touch-enabled #gal-touch-controls{display:grid;}
+#ph-gallery.touch-enabled #gal-canvas{touch-action:none;}
+#ph-gallery.touch-enabled .hud-guide{
+  left:auto;right:max(18px,env(safe-area-inset-right));bottom:max(30px,env(safe-area-inset-bottom));
+  width:min(52vw,430px);transform:none;white-space:normal;text-align:right;
+  font-size:clamp(14px,1.6vw,18px);line-height:1.65;
+}
+@media(max-width:700px){
+  #ph-gallery.touch-enabled .hud-guide{width:min(48vw,330px);}
+  #ph-gallery.touch-enabled #gal-touch-controls{grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,46px);gap:5px;}
+  #ph-gallery.touch-enabled #gal-touch-controls button{width:46px;height:46px;}
+}
 /* current-wing name, fades in/out over .8s as the player crosses a
    zone boundary (see ugalOnZoneChange) */
 #ugal-zone-label{
@@ -1099,7 +1132,7 @@ html,body{
     <div class="sv-txt" id="sv-txt"></div>
   </div>
   <button id="sv-proceed-btn" class="glass-btn next-action">낯선 나를 받아들이다 →</button>
-  <div id="sv-hint"><span id="sv-keycap" class="sv-keycap" aria-hidden="true">A</span><span>키를 누른 채, 손을 가져다 대어 베일을 걷어내세요</span></div>
+  <div id="sv-hint"><button id="sv-keycap" class="sv-keycap" type="button" aria-label="A 버튼을 누른 채 유지">A</button><span id="sv-hint-copy">키를 누른 채, 손을 가져다 대어 베일을 걷어내세요</span></div>
 </section>
 
 <!-- ========== PHASE 1: INTRO ========== -->
@@ -1280,6 +1313,12 @@ html,body{
   <canvas id="gal-canvas"></canvas>
   <div id="gal-hud">
     <div class="hud-guide" id="gal-hud-guide">클릭 후 <span class="hud-guide-key">W A S D</span> 이동 · 마우스로 시선</div>
+    <div id="gal-touch-controls" role="group" aria-label="갤러리 이동 방향">
+      <button type="button" data-move="KeyW" aria-label="앞으로 이동">↑</button>
+      <button type="button" data-move="KeyA" aria-label="왼쪽 이동">←</button>
+      <button type="button" data-move="KeyS" aria-label="뒤로 이동">↓</button>
+      <button type="button" data-move="KeyD" aria-label="오른쪽 이동">→</button>
+    </div>
   </div>
   <div id="ugal-zone-label"></div>
   <div id="gal-art-panel">
@@ -1490,6 +1529,11 @@ function initSelfVeilPhase(){
   // version's key-hold, just without also requiring a precise pinch
   let aKeyDown=false;
   const keycap=document.getElementById('sv-keycap');
+  const isTouchInput=navigator.maxTouchPoints>0;
+  document.documentElement.classList.toggle('touch-capable',isTouchInput);
+  document.getElementById('sv-hint-copy').textContent=isTouchInput
+    ?'A 버튼을 누른 채, 손을 가져다 대어 베일을 걷어내세요'
+    :'키를 누른 채, 손을 가져다 대어 베일을 걷어내세요';
   const setAKeyState=pressed=>{
     aKeyDown=pressed;
     keycap.classList.toggle('is-pressed',pressed);
@@ -1502,6 +1546,17 @@ function initSelfVeilPhase(){
   document.addEventListener('keydown',svKeydown);
   document.addEventListener('keyup',svKeyup);
   window.addEventListener('blur',svWindowBlur);
+  const svTouchDown=e=>{
+    if(e.pointerType!=='touch')return;
+    e.preventDefault();
+    keycap.setPointerCapture?.(e.pointerId);
+    setAKeyState(true);
+  };
+  const svTouchUp=e=>{if(e.pointerType==='touch')setAKeyState(false);};
+  keycap.addEventListener('pointerdown',svTouchDown);
+  keycap.addEventListener('pointerup',svTouchUp);
+  keycap.addEventListener('pointercancel',svTouchUp);
+  keycap.addEventListener('lostpointercapture',svTouchUp);
 
   const video=document.getElementById('sv-video');
   const artImg=document.getElementById('sv-art-src');
@@ -1612,6 +1667,10 @@ function initSelfVeilPhase(){
     document.removeEventListener('keydown',svKeydown);
     document.removeEventListener('keyup',svKeyup);
     window.removeEventListener('blur',svWindowBlur);
+    keycap.removeEventListener('pointerdown',svTouchDown);
+    keycap.removeEventListener('pointerup',svTouchUp);
+    keycap.removeEventListener('pointercancel',svTouchUp);
+    keycap.removeEventListener('lostpointercapture',svTouchUp);
     setAKeyState(false);
     video.srcObject&&video.srcObject.getTracks().forEach(t=>t.stop());
     video.srcObject=null;
@@ -3237,6 +3296,7 @@ function ugalMakeArtworkMaterial(T,texture){
 let ugal={
   renderer:null,camera:null,scene:null,euler:null,moveDir:null,raycaster:null,
   ambient:null,artMeshes:[],raf:null,keys:{},locked:false,built:false,
+  touchMode:false,lookPointerId:null,lookX:0,lookY:0,touchDidMove:false,
   camX:0,camY:1.5,camZ:0,yaw:0,pitch:0,bobPhase:0,lastT:0,currentArt:null,
   zone:null,
   gazedArt:null,gazeTime:0,
@@ -3616,8 +3676,8 @@ function ugalBuildScene(){
   ugal.scene=scene;
 }
 
-function ugalTryInspect(){
-  ugal.raycaster.setFromCamera({x:0,y:0},ugal.camera);
+function ugalTryInspect(x=0,y=0){
+  ugal.raycaster.setFromCamera({x,y},ugal.camera);
   const hits=ugal.raycaster.intersectObjects(ugal.artMeshes);
   if(hits.length&&hits[0].distance<4.5) openLB(hits[0].object.userData.item);
 }
@@ -3721,7 +3781,9 @@ function ugalAnimate(t){
   }
   if(ugal.atStairEntry&&ugal.camZ<-15.35){
     ugal.atStairEntry=false;
-    document.getElementById('gal-hud-guide').innerHTML='클릭 후 <span class="hud-guide-key">W A S D</span> 이동 · 마우스로 시선';
+    document.getElementById('gal-hud-guide').innerHTML=ugal.touchMode
+      ?'방향 버튼으로 이동 · 화면을 드래그해 둘러보기 · 작품을 탭해 자세히 보기'
+      :'클릭 후 <span class="hud-guide-key">W A S D</span> 이동 · 마우스로 시선';
   }
   ugal.camera.position.set(ugal.camX,ugal.camY,ugal.camZ);
 
@@ -3767,14 +3829,61 @@ function ugalAnimate(t){
   ugal.renderer.render(ugal.scene,ugal.camera);
 }
 
-ugalCanvas.addEventListener('click',()=>{
+ugalCanvas.addEventListener('click',e=>{
   if(!document.getElementById('ph-gallery').classList.contains('active'))return;
   if(!ugal.briefGateOpen)return; // pointer-lock is deferred until the entry briefing finishes
+  if(ugal.touchMode){
+    if(!ugal.touchDidMove){
+      const rect=ugalCanvas.getBoundingClientRect();
+      const x=((e.clientX-rect.left)/rect.width)*2-1;
+      const y=-((e.clientY-rect.top)/rect.height)*2+1;
+      ugalTryInspect(x,y);
+    }
+    ugal.touchDidMove=false;
+    return;
+  }
   if(document.pointerLockElement!==ugalCanvas) ugalCanvas.requestPointerLock();
   else ugalTryInspect();
 });
+ugalCanvas.addEventListener('pointerdown',e=>{
+  if(!ugal.touchMode||e.pointerType!=='touch'||!ugal.briefGateOpen)return;
+  ugal.lookPointerId=e.pointerId;ugal.lookX=e.clientX;ugal.lookY=e.clientY;ugal.touchDidMove=false;
+  ugalCanvas.setPointerCapture?.(e.pointerId);
+});
+ugalCanvas.addEventListener('pointermove',e=>{
+  if(!ugal.touchMode||e.pointerType!=='touch'||e.pointerId!==ugal.lookPointerId)return;
+  const dx=e.clientX-ugal.lookX,dy=e.clientY-ugal.lookY;
+  if(Math.abs(dx)+Math.abs(dy)>3)ugal.touchDidMove=true;
+  ugal.lookX=e.clientX;ugal.lookY=e.clientY;
+  ugal.yaw-=dx*.0042;
+  ugal.pitch=Math.max(-Math.PI*.35,Math.min(Math.PI*.35,ugal.pitch-dy*.0042));
+});
+ugalCanvas.addEventListener('pointerup',e=>{
+  if(e.pointerId!==ugal.lookPointerId)return;
+  ugal.lookPointerId=null;setTimeout(()=>{ugal.touchDidMove=false;},80);
+});
+ugalCanvas.addEventListener('pointercancel',e=>{if(e.pointerId===ugal.lookPointerId)ugal.lookPointerId=null;ugal.touchDidMove=false;});
+document.querySelectorAll('#gal-touch-controls [data-move]').forEach(button=>{
+  const moveKey=button.dataset.move;
+  const press=e=>{
+    if(!ugal.touchMode||e.pointerType!=='touch')return;
+    e.preventDefault();button.setPointerCapture?.(e.pointerId);
+    ugal.keys[moveKey]=true;button.classList.add('is-down');
+  };
+  const release=e=>{
+    if(e.pointerType!=='touch')return;
+    ugal.keys[moveKey]=false;button.classList.remove('is-down');
+  };
+  button.addEventListener('pointerdown',press);
+  button.addEventListener('pointerup',release);
+  button.addEventListener('pointercancel',release);
+  button.addEventListener('lostpointercapture',release);
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ugal.keys={};document.querySelectorAll('#gal-touch-controls .is-down').forEach(b=>b.classList.remove('is-down'));}
+});
 document.addEventListener('pointerlockchange',()=>{
-  ugal.locked=document.pointerLockElement===ugalCanvas;
+  ugal.locked=ugal.touchMode||document.pointerLockElement===ugalCanvas;
   cur.style.opacity=ugal.locked?'0':'';
 });
 document.addEventListener('mousemove',e=>{
@@ -3796,12 +3905,15 @@ function ugalEnter(fromDoor=false,fromLowerLanding=false){
   ugalZoneLabel.classList.remove('show');
   ugalCta.classList.remove('show');
   ugal.currentArt=null;ugal.keys={};ugal.yaw=0;ugal.pitch=0;
+  ugal.touchMode=navigator.maxTouchPoints>0;
+  ugal.locked=ugal.touchMode;
+  document.getElementById('ph-gallery').classList.toggle('touch-enabled',ugal.touchMode);
   ugal.camX=0;ugal.camZ=fromDoor?(fromLowerLanding?-15.8:-10.2):0;
   ugal.camY=1.5+ugalEntryFloorOffset(ugal.camZ);ugal.bobPhase=0;ugal.lastT=0;
   ugal.atStairEntry=fromDoor&&!fromLowerLanding;
-  document.getElementById('gal-hud-guide').innerHTML=ugal.atStairEntry
-    ?'클릭 후 <span class="hud-guide-key">W A S D</span>로 계단을 내려가세요'
-    :'클릭 후 <span class="hud-guide-key">W A S D</span> 이동 · 마우스로 시선';
+  document.getElementById('gal-hud-guide').innerHTML=ugal.touchMode
+    ?(ugal.atStairEntry?'방향 버튼으로 계단을 내려가세요 · 화면을 드래그해 둘러보기':'방향 버튼으로 이동 · 화면을 드래그해 둘러보기 · 작품을 탭해 자세히 보기')
+    :(ugal.atStairEntry?'클릭 후 <span class="hud-guide-key">W A S D</span>로 계단을 내려가세요':'클릭 후 <span class="hud-guide-key">W A S D</span> 이동 · 마우스로 시선');
   ugal.zone=null;
 
   // entry briefing removed — pointer-lock is available immediately
