@@ -3286,7 +3286,7 @@ function ugalEnsureRenderer(){
   if(ugal.renderer)return;
   const T=THREE_LIB;
   const renderer=new T.WebGLRenderer({canvas:ugalCanvas,antialias:true,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
+  renderer.setPixelRatio(ugalPixelRatioForViewport(window.innerWidth,window.innerHeight));
   // Keep shadows selective: only one display spot per artist casts a
   // shadow, while the room and frames receive them. This keeps the
   // architectural depth without enabling a shadow map on every artwork.
@@ -3307,10 +3307,19 @@ function ugalEnsureRenderer(){
   window.addEventListener('resize',ugalResize);
   ugalResize();
 }
+function ugalPixelRatioForViewport(w,h){
+  // Cap the gallery render target at about four megapixels. Large Retina
+  // displays otherwise make every real-time frame and shadow pass much
+  // more expensive, while smaller screens keep the previous 1.5x sharpness.
+  const area=Math.max(1,w*h);
+  return Math.max(1,Math.min(window.devicePixelRatio||1,1.5,Math.sqrt(4000000/area)));
+}
 function ugalResize(){
   if(!ugal.renderer)return;
   const w=window.innerWidth,h=window.innerHeight;
   ugal.camera.aspect=w/h;ugal.camera.updateProjectionMatrix();
+  const pixelRatio=ugalPixelRatioForViewport(w,h);
+  if(Math.abs(ugal.renderer.getPixelRatio()-pixelRatio)>.01)ugal.renderer.setPixelRatio(pixelRatio);
   ugal.renderer.setSize(w,h);
 }
 
