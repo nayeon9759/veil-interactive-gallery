@@ -2065,12 +2065,21 @@ const PHIL_QUESTIONS=[
    opts:[{v:'shadow',label:'그날의 빛과 공기'},{v:'trace',label:'누군가의 말 한마디'},{v:'object',label:'그때 곁에 있던 물건이나 장소'},{v:'fragment',label:'그 순간 내 몸이 느꼈던 감각'}]}
 ];
 const PHIL_RESULT_CARD_IMAGES={
-  object:{front:'결과 카드/오브젝트 앞면.png',back:'결과 카드/오브젝트 뒷면.png'},
-  fragment:{front:'결과 카드/프래그먼트 앞면.png',back:'결과 카드/프래그먼트 뒷면.png'},
-  silhouette:{front:'결과 카드/실루엣 앞면.png',back:'결과 카드/실루엣 뒷면.png'},
-  shadow:{front:'결과 카드/섀도우 앞면.png',back:'결과 카드/섀도우 뒷면.png'},
-  trace:{front:'결과 카드/트레이스 앞면.png',back:'결과 카드/트레이스 뒷면.png'},
+  object:{front:'결과 카드/front-object.jpg',back:'결과 카드/오브젝트 뒷면.png'},
+  fragment:{front:'결과 카드/front-fragment.jpg',back:'결과 카드/프래그먼트 뒷면.png'},
+  silhouette:{front:'결과 카드/front-silhouette.jpg',back:'결과 카드/실루엣 뒷면.png'},
+  shadow:{front:'결과 카드/front-shadow.jpg',back:'결과 카드/섀도우 뒷면.png'},
+  trace:{front:'결과 카드/front-trace.jpg',back:'결과 카드/트레이스 뒷면.png'},
 };
+let philResultFrontsPreloaded=false;
+function philPreloadResultFronts(){
+  if(philResultFrontsPreloaded)return;
+  philResultFrontsPreloaded=true;
+  Object.values(PHIL_RESULT_CARD_IMAGES).forEach(({front})=>{
+    const image=new Image();image.decoding='async';image.fetchPriority='high';image.src=front;
+    if(typeof image.decode==='function')image.decode().catch(()=>{});
+  });
+}
 // Back designs are small and shown first when the result card appears.
 // Warm them into the browser cache before the visitor reaches the corridor end.
 const PHIL_RESULT_BACK_PRELOADS=Object.values(PHIL_RESULT_CARD_IMAGES).map(({back})=>{
@@ -2578,6 +2587,9 @@ function philAnimate(t){
 }
 
 function initFogPhase(){
+  // Fetch and decode the lightweight front variants while the visitor is
+  // moving through the passage, before the result card is ever requested.
+  philPreloadResultFronts();
   const passage=document.getElementById('ph-fog');
   passage.classList.remove('intro-clearing');
   passage.classList.add('intro-hold');
