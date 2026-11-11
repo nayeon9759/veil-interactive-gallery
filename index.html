@@ -1479,6 +1479,14 @@ function svGetVeilImg(){
   return svVeilImgEl;
 }
 
+// Keep the approved webcam stream alive for this tab session. The mirror
+// phase can be revisited (including by the next visitor) without asking
+// Safari to start a new camera stream each time.
+let svCameraStream=null;
+window.addEventListener('pagehide',()=>{
+  if(svCameraStream){svCameraStream.getTracks().forEach(track=>track.stop());svCameraStream=null;}
+});
+
 function initSelfVeilPhase(){
   // A-key gate: without this, a bystander stepping into frame behind
   // the visitor would also make the mirror react — holding A is what
@@ -1609,7 +1617,8 @@ function initSelfVeilPhase(){
     document.removeEventListener('keyup',svKeyup);
     window.removeEventListener('blur',svWindowBlur);
     setAKeyState(false);
-    video.srcObject&&video.srcObject.getTracks().forEach(t=>t.stop());
+    // Detach this phase's video element, but keep the approved camera
+    // stream for the next visitor/visit in the same open tab.
     video.srcObject=null;
   }
 
@@ -1768,10 +1777,12 @@ function initSelfVeilPhase(){
 
   async function startCam(){
     try{
-      const camStream=await navigator.mediaDevices.getUserMedia({
-        video:{width:320,height:240,facingMode:'user'}
-      });
-      video.srcObject=camStream;
+      if(!svCameraStream||!svCameraStream.getVideoTracks().some(track=>track.readyState==='live')){
+        svCameraStream=await navigator.mediaDevices.getUserMedia({
+          video:{width:320,height:240,facingMode:'user'}
+        });
+      }
+      video.srcObject=svCameraStream;
       video.play().catch(()=>{});
     }catch(err){
       // camera denied/unavailable — there is no manual fallback for
