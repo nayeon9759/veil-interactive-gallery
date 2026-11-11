@@ -3272,7 +3272,8 @@ function ugalEnsureRenderer(){
   // the darker room around them into a flat gray floor
   renderer.toneMappingExposure=1.45;
   ugal.renderer=renderer;
-  ugal.camera=new T.PerspectiveCamera(70,1,.05,80);
+  // A slightly narrower view reduces peripheral optic flow on large displays.
+  ugal.camera=new T.PerspectiveCamera(65,1,.05,80);
   ugal.euler=new T.Euler(0,0,0,'YXZ');
   ugal.moveDir=new T.Vector3();
   ugal.raycaster=new T.Raycaster();
@@ -3836,7 +3837,7 @@ function ugalAnimate(t){
     }
   }
 
-  const lookEase=1-Math.exp(-12*dt);
+  const lookEase=1-Math.exp(-9*dt);
   ugal.yaw+=(ugal.targetYaw-ugal.yaw)*lookEase;
   ugal.pitch+=(ugal.targetPitch-ugal.pitch)*lookEase;
   ugal.euler.x=ugal.pitch;ugal.euler.y=ugal.yaw;
@@ -3856,7 +3857,7 @@ function ugalAnimate(t){
     // stopping so the camera does not jerk when a key is pressed/released.
     const desiredX=moving?ugal.moveDir.x*11.4:0;
     const desiredZ=moving?ugal.moveDir.z*11.4:0;
-    const moveEase=1-Math.exp(-(moving?9:12)*dt);
+    const moveEase=1-Math.exp(-(moving?6.5:9)*dt);
     ugal.moveVelX+=(desiredX-ugal.moveVelX)*moveEase;
     ugal.moveVelZ+=(desiredZ-ugal.moveVelZ)*moveEase;
     const isMoving=Math.abs(ugal.moveVelX)+Math.abs(ugal.moveVelZ)>.015;
@@ -3965,9 +3966,11 @@ document.addEventListener('mousemove',e=>{
     return;
   }
   if(ugal.lookEnabled&&document.pointerLockElement===ugalCanvas){
-    // Lower mouse-look sensitivity substantially for small, precise movements.
-    ugal.targetYaw-=e.movementX*0.0002;
-    ugal.targetPitch=Math.max(-Math.PI*0.35,Math.min(Math.PI*0.35,ugal.targetPitch-e.movementY*0.0002));
+    // Lower gain and ease the follow-through to keep small mouse motions calm.
+    const mouseX=Math.max(-100,Math.min(100,e.movementX));
+    const mouseY=Math.max(-100,Math.min(100,e.movementY));
+    ugal.targetYaw-=mouseX*0.00012;
+    ugal.targetPitch=Math.max(-Math.PI*0.35,Math.min(Math.PI*0.35,ugal.targetPitch-mouseY*0.00012));
     return;
   }
   const rect=ugalCanvas.getBoundingClientRect();
