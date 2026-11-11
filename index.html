@@ -1633,10 +1633,15 @@ function initSelfVeilPhase(){
       proceedBtn.classList.add('show');
     },900);
   }
-  // safety net: if hand-tracking never completes (camera denied, no
-  // gesture detected, model failed to load), still let the visitor
-  // through after a while instead of stranding them with no button
-  setTimeout(()=>proceedBtn.classList.add('show'),20000);
+  // Safety net: if hand-tracking never completes (camera denied, no
+  // gesture detected, model failed to load), gently clear the veil after
+  // a while. The CTA still appears only after the veil has disappeared.
+  setTimeout(()=>{
+    if(done||completed)return;
+    thrown=true;
+    throwStart=performance.now();
+    throwDir={x:0,y:-1};
+  },20000);
 
   // real hand tracking: HandLandmarker gives 21 3D landmarks per
   // detected hand. Landmark 9 (middle-finger MCP) is a stable stand-in
