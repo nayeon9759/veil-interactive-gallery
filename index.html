@@ -3879,7 +3879,9 @@ function ugalAnimate(t){
         ugalFirstGuideMoveTime+=dt;
         if(ugalFirstGuideMoveTime>=4){ugalFirstGuideDismissed=true;ugalHideFirstVisitGuide();}
       }
-      ugal.moveDir.normalize().multiplyScalar(.19);
+      // Time-based movement keeps WASD speed consistent across machines.
+      // Keep the per-frame step capped so a slow frame cannot jump the camera.
+      ugal.moveDir.normalize().multiplyScalar(Math.min(.24,11.4*dt));
       ugal.moveDir.applyEuler(new THREE_LIB.Euler(0,ugal.yaw,0));
       // axes checked independently so the player slides along a wall
       // instead of stopping dead on any diagonal approach to it
@@ -3888,7 +3890,7 @@ function ugalAnimate(t){
       if(ugalInBounds(ugal.camX,nz)) ugal.camZ=nz;
       ugal.bobPhase+=dt*7.5;
     }
-    ugal.camY=1.5+ugalEntryFloorOffset(ugal.camZ)+(moving?Math.sin(ugal.bobPhase)*.014:0);
+    ugal.camY=1.5+ugalEntryFloorOffset(ugal.camZ)+(moving?Math.sin(ugal.bobPhase)*.008:0);
     ugalCheckProximity();
     const z=ugalZoneAt(ugal.camX,ugal.camZ);
     if(z&&z!==ugal.zone) ugalOnZoneChange(z,t);
@@ -3970,8 +3972,8 @@ document.addEventListener('mousemove',e=>{
     return;
   }
   if(ugal.lookEnabled&&document.pointerLockElement===ugalCanvas){
-    ugal.yaw-=e.movementX*0.001;
-    ugal.pitch=Math.max(-Math.PI*0.35,Math.min(Math.PI*0.35,ugal.pitch-e.movementY*0.001));
+    ugal.yaw-=e.movementX*0.0009;
+    ugal.pitch=Math.max(-Math.PI*0.35,Math.min(Math.PI*0.35,ugal.pitch-e.movementY*0.0009));
     return;
   }
   const rect=ugalCanvas.getBoundingClientRect();
