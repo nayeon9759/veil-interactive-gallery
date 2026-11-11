@@ -1467,6 +1467,9 @@ function svGetVeilImg(){
   if(!svVeilImgEl){ svVeilImgEl=new Image(); svVeilImgEl.src='assets/veil.png'; }
   return svVeilImgEl;
 }
+// Start loading the cloth before the visitor reaches the mirror so the
+// first bedroom frame never exposes the uncovered mirror while it loads.
+svGetVeilImg();
 
 // Keep the approved webcam stream alive for this tab session. The mirror
 // phase can be revisited (including by the next visitor) without asking
@@ -1717,7 +1720,7 @@ function initSelfVeilPhase(){
       drawContain(vctx,img,img.naturalWidth,img.naturalHeight,veilPos.x,veilPos.y,boxW,boxH);
     }else{
       vctx.shadowColor='transparent';
-      vctx.fillStyle='rgba(245,240,232,0.65)';
+      vctx.fillStyle='rgba(245,240,232,1)';
       vctx.fillRect(veilPos.x-boxW/2,veilPos.y-boxH/2,boxW,boxH);
     }
     vctx.restore();
@@ -1761,6 +1764,9 @@ function initSelfVeilPhase(){
   // veil rests centered over the hole (same spot the old #veil-img
   // draped from) until a hand shows up
   veilPos={x:hole.cx,y:hole.cy+hole.halfH*0.7};
+  // Paint the cover synchronously before the phase can render its first
+  // visible frame, avoiding a flash of the revealed mirror on entry.
+  drawVeil();
 
   if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia) startCam();
   startHandTracking();
