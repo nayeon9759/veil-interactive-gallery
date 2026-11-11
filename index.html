@@ -3954,7 +3954,6 @@ ugalCanvas.addEventListener('click',e=>{
 });
 const ugalPointerNdc={x:0,y:0};
 let ugalLastMousePosition=null;
-let ugalEscGuideTimer=null;
 document.addEventListener('pointerlockchange',()=>{
   const wasLookEnabled=ugal.lookEnabled;
   ugal.lookEnabled=document.pointerLockElement===ugalCanvas;
@@ -3962,14 +3961,10 @@ document.addEventListener('pointerlockchange',()=>{
   ugalLastMousePosition=null;
   const escGuide=document.getElementById('gal-esc-guide');
   const inGallery=document.getElementById('ph-gallery').classList.contains('active');
-  if(ugalEscGuideTimer){clearTimeout(ugalEscGuideTimer);ugalEscGuideTimer=null;}
   const showReturnHint=wasLookEnabled&&!ugal.lookEnabled&&inGallery;
   if(escGuide){
     escGuide.classList.toggle('show',showReturnHint);
     escGuide.setAttribute('aria-hidden',String(!showReturnHint));
-    if(showReturnHint)ugalEscGuideTimer=setTimeout(()=>{
-      escGuide.classList.remove('show');escGuide.setAttribute('aria-hidden','true');ugalEscGuideTimer=null;
-    },3500);
   }
 });
 document.addEventListener('mousemove',e=>{
