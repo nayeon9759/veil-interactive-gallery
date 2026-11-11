@@ -1086,7 +1086,7 @@ body.gallery-cursor-visible #cursor{visibility:hidden;}
   <img id="sv-art-src" src="assets/bedroom-veil-reveal-10.png" alt="">
   <canvas id="sv-canvas"></canvas>
   <canvas id="sv-veil-canvas"></canvas>
-  <img id="sv-mirror-frame" src="assets/누끼.png" alt="">
+  <img id="sv-mirror-frame" src="assets/bedroom-room.jpg" alt="">
   <div id="sv-copy">
     <div class="sv-txt" id="sv-txt"></div>
   </div>
@@ -1556,6 +1556,12 @@ function initSelfVeilPhase(){
     mirrorFrameEl.style.height=dispH+'px';
     mirrorFrameEl.style.left=left+'px';
     mirrorFrameEl.style.top=top+'px';
+    // The replacement bedroom image is a flattened photograph, so cut
+    // a transparent oval from its mirror to keep the live reveal visible
+    // underneath, matching the previous frame PNG's alpha opening.
+    const mirrorMask=`radial-gradient(ellipse ${SV_HOLE_HALF_W_NATIVE*scale}px ${SV_HOLE_HALF_H_NATIVE*scale}px at ${SV_MIRROR_CX_FRAC*100}% ${SV_MIRROR_CY_FRAC*100}%, transparent 98%, #000 100%)`;
+    mirrorFrameEl.style.webkitMaskImage=mirrorMask;
+    mirrorFrameEl.style.maskImage=mirrorMask;
     hole={
       cx: cw/2, // exact viewport center, by construction
       cy: top+holeYInImg,
