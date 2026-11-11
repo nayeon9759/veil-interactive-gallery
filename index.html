@@ -109,21 +109,12 @@ body.gallery-controls-active #gal-info-btn:hover,body.gallery-controls-active #g
 
 /* ================================================
    PHASE 1.4 — SELF-VEIL MIRROR
-   architecture: a full-viewport canvas (z-index 1) composites the
-   permanently hazy/frosted webcam feed with art.jpg, revealed only
-   where a webcam-motion wipe gesture has passed. On top of it
-   (z-index 10) sits assets/mirror-alpha.png — the same round-mirror
-   photo but with a REAL transparent hole punched exactly over the
-   glass (the original had no alpha channel; this is a generated
-   copy). Because the frame image is opaque everywhere except that
-   true alpha hole, it always masks the canvas perfectly — no manual
-   position/size math can ever leave a gap or let content spill past
-   the frame, regardless of viewport size.
+   The bedroom photograph itself contains the reflection. A physical
+   veil image is drawn over the mirror and follows the visitor's hand;
+   moving it away reveals the person already present in the photograph.
    ================================================ */
 #ph-selfveil{background:#0c0906;overflow:hidden;}
 #sv-video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
-#sv-art-src{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
-#sv-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;}
 /* sized/positioned in JS (see computeHole) instead of inset:0 +
    object-fit:cover — the mirror's hole isn't at the exact center of
    this source image (52.25% across), so a plain centered cover-fit
@@ -1083,8 +1074,6 @@ body.gallery-cursor-visible #cursor{visibility:hidden;}
 <!-- ========== PHASE 1.4: SELF-VEIL MIRROR (find not your face but your essence) ========== -->
 <section id="ph-selfveil" class="phase">
   <video id="sv-video" autoplay muted playsinline webkit-playsinline></video>
-  <img id="sv-art-src" src="assets/bedroom-veil-reveal-10.png" alt="">
-  <canvas id="sv-canvas"></canvas>
   <canvas id="sv-veil-canvas"></canvas>
   <img id="sv-mirror-frame" src="assets/bedroom-room.jpg" alt="">
   <div id="sv-copy">
@@ -1508,15 +1497,12 @@ function initSelfVeilPhase(){
   window.addEventListener('blur',svWindowBlur);
 
   const video=document.getElementById('sv-video');
-  const artImg=document.getElementById('sv-art-src');
-  const canvas=document.getElementById('sv-canvas');
   const veilCanvas=document.getElementById('sv-veil-canvas');
   const mirrorFrameEl=document.getElementById('sv-mirror-frame');
   const txt=document.getElementById('sv-txt');
   const svCopy=document.getElementById('sv-copy');
   const proceedBtn=document.getElementById('sv-proceed-btn');
   const hintEl=document.getElementById('sv-hint');
-  const ctx=canvas.getContext('2d');
   const vctx=veilCanvas.getContext('2d');
 
   txt.style.transition='';
@@ -1524,14 +1510,9 @@ function initSelfVeilPhase(){
   txt.textContent='';
   hintEl.classList.add('show');
 
-  // precise hole geometry (position AND size), measured directly off
-  // assets/room2.png's alpha channel (bounding box of the transparent
-  // oval where the mirror glass is) — the frame image already
-  // guarantees nothing spills past it, but the art content still needs
-  // to be cover-cropped to the HOLE's own box (not the full viewport),
-  // or the crop centers on the wrong content entirely. This oval hole
-  // is taller-than-wide, so width/height are tracked separately
-  // (halfW/halfH) instead of a single radius.
+  // Mirror ellipse position and dimensions, measured from the previous
+  // room composition and retained to align the veil over the new mirror.
+  // The opening is taller-than-wide, so track each half-axis separately.
   const SV_MIRROR_IMG_W=1536, SV_MIRROR_IMG_H=1024;
   const SV_MIRROR_CX_FRAC=0.5225, SV_MIRROR_CY_FRAC=0.3901;
   const SV_HOLE_HALF_W_NATIVE=99.5, SV_HOLE_HALF_H_NATIVE=156.5;
@@ -1556,12 +1537,6 @@ function initSelfVeilPhase(){
     mirrorFrameEl.style.height=dispH+'px';
     mirrorFrameEl.style.left=left+'px';
     mirrorFrameEl.style.top=top+'px';
-    // The replacement bedroom image is a flattened photograph, so cut
-    // a transparent oval from its mirror to keep the live reveal visible
-    // underneath, matching the previous frame PNG's alpha opening.
-    const mirrorMask=`radial-gradient(ellipse ${SV_HOLE_HALF_W_NATIVE*scale}px ${SV_HOLE_HALF_H_NATIVE*scale}px at ${SV_MIRROR_CX_FRAC*100}% ${SV_MIRROR_CY_FRAC*100}%, transparent 98%, #000 100%)`;
-    mirrorFrameEl.style.webkitMaskImage=mirrorMask;
-    mirrorFrameEl.style.maskImage=mirrorMask;
     hole={
       cx: cw/2, // exact viewport center, by construction
       cy: top+holeYInImg,
@@ -1570,15 +1545,11 @@ function initSelfVeilPhase(){
     };
   }
 
-  // both canvases fill the viewport (assets/room3.png's frame masks
-  // it down to the real oval cutout for the art canvas; the veil
-  // canvas deliberately sits ABOVE the frame — see its z-index note
-  // in CSS — so the cloth itself can drape past the hole's edge)
+  // The veil canvas fills the viewport and sits above the bedroom photo.
   let CW=1,CH=1;
   function sizeCanvases(){
     CW=Math.max(1,window.innerWidth);
     CH=Math.max(1,window.innerHeight);
-    canvas.width=CW;canvas.height=CH;
     veilCanvas.width=CW;veilCanvas.height=CH;
     computeHole();
     // #sv-mirror-frame is a full-bleed object-fit:cover image with no
@@ -1761,27 +1732,6 @@ function initSelfVeilPhase(){
       drawVeil();
     }
     hintEl.classList.toggle('show',!handSeen&&!completed);
-
-    const {cx,cy}=hole;
-    // deliberately overfill the hole rather than match it exactly —
-    // the opaque frame on top safely masks a few extra px of overlap,
-    // whereas any shortfall here shows up as a visible gap
-    const hw=hole.halfW*2*1.08,hh=hole.halfH*2*1.08;
-    const hx=cx-hw/2,hy=cy-hh/2;
-
-    ctx.clearRect(0,0,CW,CH);
-
-    // the art itself, sharp, no blur — #sv-veil-canvas sits on top and
-    // is what hides it until swiped away (see drawVeil)
-    ctx.save();
-    ctx.beginPath();ctx.rect(hx,hy,hw,hh);ctx.clip();
-    if(artImg.complete&&artImg.naturalWidth){
-      ctx.translate(hx,hy);
-      drawCover(ctx,artImg,artImg.naturalWidth,artImg.naturalHeight,hw,hh);
-    }else{
-      ctx.fillStyle='#0a0807';ctx.fillRect(hx,hy,hw,hh);
-    }
-    ctx.restore();
 
     rafId=requestAnimationFrame(svFrame);
   }
