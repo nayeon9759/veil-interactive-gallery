@@ -3243,7 +3243,7 @@ function ugalMakeArtworkMaterial(T,texture){
 let ugal={
   renderer:null,camera:null,scene:null,euler:null,moveDir:null,raycaster:null,
   ambient:null,artMeshes:[],raf:null,keys:{},controlsEnabled:false,lookEnabled:false,built:false,
-  camX:0,camY:1.5,camZ:0,yaw:0,pitch:0,bobPhase:0,lastT:0,currentArt:null,
+  camX:0,camY:1.5,camZ:0,moveVelX:0,moveVelZ:0,yaw:0,pitch:0,targetYaw:0,targetPitch:0,bobPhase:0,lastT:0,currentArt:null,
   zone:null,
   gazedArt:null,gazeTime:0,
   briefGateOpen:false,atStairEntry:false,
@@ -3836,6 +3836,9 @@ function ugalAnimate(t){
     }
   }
 
+  const lookEase=1-Math.exp(-12*dt);
+  ugal.yaw+=(ugal.targetYaw-ugal.yaw)*lookEase;
+  ugal.pitch+=(ugal.targetPitch-ugal.pitch)*lookEase;
   ugal.euler.x=ugal.pitch;ugal.euler.y=ugal.yaw;
   ugal.camera.quaternion.setFromEuler(ugal.euler);
 
@@ -3847,22 +3850,30 @@ function ugalAnimate(t){
     if(ugal.keys['KeyD']||ugal.keys['ArrowRight'])ugal.moveDir.x+=1;
     const moving=ugal.moveDir.lengthSq()>0;
     if(moving){
-      if(ugalFirstGuideSeen&&!ugalFirstGuideDismissed){
+      ugal.moveDir.normalize().applyEuler(new THREE_LIB.Euler(0,ugal.yaw,0));
+    }
+    // Keep the familiar full walking speed, but ease acceleration and
+    // stopping so the camera does not jerk when a key is pressed/released.
+    const desiredX=moving?ugal.moveDir.x*11.4:0;
+    const desiredZ=moving?ugal.moveDir.z*11.4:0;
+    const moveEase=1-Math.exp(-(moving?9:12)*dt);
+    ugal.moveVelX+=(desiredX-ugal.moveVelX)*moveEase;
+    ugal.moveVelZ+=(desiredZ-ugal.moveVelZ)*moveEase;
+    const isMoving=Math.abs(ugal.moveVelX)+Math.abs(ugal.moveVelZ)>.015;
+    if(isMoving){
+      if(moving&&ugalFirstGuideSeen&&!ugalFirstGuideDismissed){
         ugalFirstGuideMoveTime+=dt;
         if(ugalFirstGuideMoveTime>=4){ugalFirstGuideDismissed=true;ugalHideFirstVisitGuide();}
       }
-      // Time-based movement keeps WASD speed consistent across machines.
-      // Keep the per-frame step capped so a slow frame cannot jump the camera.
-      ugal.moveDir.normalize().multiplyScalar(Math.min(.24,11.4*dt));
-      ugal.moveDir.applyEuler(new THREE_LIB.Euler(0,ugal.yaw,0));
+      const stepX=ugal.moveVelX*dt,stepZ=ugal.moveVelZ*dt;
       // axes checked independently so the player slides along a wall
       // instead of stopping dead on any diagonal approach to it
-      const nx=ugal.camX+ugal.moveDir.x, nz=ugal.camZ+ugal.moveDir.z;
+      const nx=ugal.camX+stepX, nz=ugal.camZ+stepZ;
       if(ugalInBounds(nx,ugal.camZ)) ugal.camX=nx;
       if(ugalInBounds(ugal.camX,nz)) ugal.camZ=nz;
-      ugal.bobPhase+=dt*7.5;
     }
-    ugal.camY=1.5+ugalEntryFloorOffset(ugal.camZ)+(moving?Math.sin(ugal.bobPhase)*.008:0);
+    // Keep eye height steady to avoid camera bob while walking.
+    ugal.camY=1.5+ugalEntryFloorOffset(ugal.camZ);
     ugalCheckProximity();
     const z=ugalZoneAt(ugal.camX,ugal.camZ);
     if(z&&z!==ugal.zone) ugalOnZoneChange(z,t);
@@ -3944,8 +3955,9 @@ document.addEventListener('mousemove',e=>{
     return;
   }
   if(ugal.lookEnabled&&document.pointerLockElement===ugalCanvas){
-    ugal.yaw-=e.movementX*0.0009;
-    ugal.pitch=Math.max(-Math.PI*0.35,Math.min(Math.PI*0.35,ugal.pitch-e.movementY*0.0009));
+    // Lower mouse-look sensitivity substantially for small, precise movements.
+    ugal.targetYaw-=e.movementX*0.0002;
+    ugal.targetPitch=Math.max(-Math.PI*0.35,Math.min(Math.PI*0.35,ugal.targetPitch-e.movementY*0.0002));
     return;
   }
   const rect=ugalCanvas.getBoundingClientRect();
@@ -4013,7 +4025,7 @@ document.getElementById('gal-info-btn').addEventListener('click',()=>{
 function ugalEnter(fromDoor=false,fromLowerLanding=false){
   ugalArtPanel.classList.remove('show');
   ugalCtaGroup.classList.remove('show');
-  ugal.currentArt=null;ugal.keys={};ugal.yaw=0;ugal.pitch=0;ugal.controlsEnabled=true;ugal.lookEnabled=false;ugalLastMousePosition=null;
+  ugal.currentArt=null;ugal.keys={};ugal.moveVelX=0;ugal.moveVelZ=0;ugal.yaw=0;ugal.pitch=0;ugal.targetYaw=0;ugal.targetPitch=0;ugal.controlsEnabled=true;ugal.lookEnabled=false;ugalLastMousePosition=null;
   ugal.camX=0;ugal.camZ=fromDoor?(fromLowerLanding?-15.8:-10.2):0;
   ugal.camY=1.5+ugalEntryFloorOffset(ugal.camZ);ugal.bobPhase=0;ugal.lastT=0;
   ugal.atStairEntry=fromDoor&&!fromLowerLanding;
