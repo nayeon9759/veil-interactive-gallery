@@ -644,8 +644,6 @@ body.gallery-cursor-visible #cursor{visibility:hidden;}
   transition:opacity .25s ease,visibility .25s ease;pointer-events:none;
 }
 #gal-first-guide p{margin:0;}
-#gal-first-guide .guide-esc-line{display:none;}
-#gal-first-guide.is-info-open .guide-esc-line{display:block;padding-top:.35em;}
 #gal-first-guide.show{opacity:1;visibility:visible;}
 #gal-first-guide.is-leaving{opacity:0;visibility:hidden;}
 #gal-control-toast{
@@ -1262,7 +1260,6 @@ body.gallery-cursor-visible #cursor{visibility:hidden;}
       <p>WASD 방향키로 이동해요</p>
       <p>빈 공간을 클릭한 뒤 마우스로 둘러봐요</p>
       <p>작품을 클릭하면 자세히 볼 수 있어요</p>
-      <p class="guide-esc-line">ESC를 누르면 커서가 보여요</p>
     </div>
     <div id="gal-control-toast" aria-live="polite" aria-hidden="true"></div>
   </div>
@@ -4012,7 +4009,7 @@ function ugalHideFirstVisitGuide(){
   if(ugalFirstGuideTimer){clearTimeout(ugalFirstGuideTimer);ugalFirstGuideTimer=null;}
   const guide=document.getElementById('gal-first-guide');
   const hud=document.getElementById('gal-hud');
-  if(guide){guide.classList.remove('show','is-info-open');guide.classList.add('is-leaving');guide.setAttribute('aria-hidden','true');}
+  if(guide){guide.classList.remove('show');guide.classList.add('is-leaving');guide.setAttribute('aria-hidden','true');}
   if(hud)hud.classList.remove('guide-active');
   const infoBtn=document.getElementById('gal-info-btn');
   if(infoBtn){infoBtn.setAttribute('aria-expanded','false');infoBtn.setAttribute('aria-label','조작 안내 보기');}
@@ -4026,7 +4023,7 @@ function ugalShowFirstVisitGuide(){
   const hud=document.getElementById('gal-hud');
   if(!guide)return;
   if(hud)hud.classList.add('guide-active');
-  guide.classList.remove('is-leaving','is-info-open');guide.classList.add('show');guide.setAttribute('aria-hidden','false');
+  guide.classList.remove('is-leaving');guide.classList.add('show');guide.setAttribute('aria-hidden','false');
   const infoBtn=document.getElementById('gal-info-btn');
   if(infoBtn){infoBtn.setAttribute('aria-expanded','true');infoBtn.setAttribute('aria-label','조작 안내 닫기');}
   // Keep the entry guide visible for up to 4 seconds; sustained movement
@@ -4040,7 +4037,7 @@ document.getElementById('gal-info-btn').addEventListener('click',()=>{
     return;
   }
   if(ugalFirstGuideTimer){clearTimeout(ugalFirstGuideTimer);ugalFirstGuideTimer=null;}
-  guide.classList.remove('is-leaving');guide.classList.add('show','is-info-open');guide.setAttribute('aria-hidden','false');
+  guide.classList.remove('is-leaving');guide.classList.add('show');guide.setAttribute('aria-hidden','false');
   document.getElementById('gal-hud').classList.add('guide-active');
   const infoBtn=document.getElementById('gal-info-btn');
   infoBtn.setAttribute('aria-expanded','true');infoBtn.setAttribute('aria-label','조작 안내 닫기');
