@@ -3866,9 +3866,10 @@ function ugalAnimate(t){
     }
     // Keep the familiar full walking speed, but ease acceleration and
     // stopping so the camera does not jerk when a key is pressed/released.
-    const desiredX=moving?ugal.moveDir.x*11.4:0;
-    const desiredZ=moving?ugal.moveDir.z*11.4:0;
-    const moveEase=1-Math.exp(-(moving?9:12)*dt);
+    // A gentler walking pace keeps the gallery comfortable on large displays.
+    const desiredX=moving?ugal.moveDir.x*9.0:0;
+    const desiredZ=moving?ugal.moveDir.z*9.0:0;
+    const moveEase=1-Math.exp(-(moving?7.5:10)*dt);
     ugal.moveVelX+=(desiredX-ugal.moveVelX)*moveEase;
     ugal.moveVelZ+=(desiredZ-ugal.moveVelZ)*moveEase;
     const isMoving=Math.abs(ugal.moveVelX)+Math.abs(ugal.moveVelZ)>.015;
