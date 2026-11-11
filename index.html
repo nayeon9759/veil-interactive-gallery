@@ -1776,7 +1776,9 @@ function initSelfVeilPhase(){
 
 /* ============ PHASE SWITCH ============ */
 function goTo(id){
+  const returningToIntro=id==='intro'&&document.getElementById('ph-ending').classList.contains('active');
   if(id!=='ending' && typeof endingRunToken!=='undefined') endingRunToken++;
+  if(returningToIntro)resetIntroPhase();
   document.body.classList.toggle('ending-active',id==='ending');
   // 지도 위치 업데이트
   (function(){
@@ -1953,6 +1955,7 @@ document.getElementById('lamp-wrap').addEventListener('click',()=>{
     return;
   }
   S.lampOn=true;
+  const lampRun=++lampRunToken;
   document.getElementById('ph-intro').classList.add('lamp-on');
 
   // "전등을 켜보세요" hint has done its job — hide it immediately so it
@@ -1965,11 +1968,13 @@ document.getElementById('lamp-wrap').addEventListener('click',()=>{
 
   // Table glow
   setTimeout(()=>{
+    if(lampRun!==lampRunToken||!S.lampOn)return;
     document.getElementById('table-light').classList.add('on');
   },400);
 
   // Envelope illuminates
   setTimeout(()=>{
+    if(lampRun!==lampRunToken||!S.lampOn)return;
     document.getElementById('env-table-wrap').classList.add('illuminated');
     document.getElementById('env-hint-lbl').classList.add('show');
   },700);
@@ -1978,6 +1983,7 @@ document.getElementById('lamp-wrap').addEventListener('click',()=>{
 // Envelope moves to center, pauses, then the supplied letter rises subtly
 // into view while the flattened envelope image dissolves away.
 let envFlying=false;
+let envRunToken=0,lampRunToken=0;
 const envWrap=document.getElementById('env-table-wrap');
 const introBg=document.getElementById('intro-bg');
 const envStageWrap=document.getElementById('env-stage-wrap');
@@ -1987,6 +1993,7 @@ const envProceedBtn=document.getElementById('env-proceed-btn');
 
 function resetEnvelopeFly(){
   envFlying=false;
+  envRunToken++;
   envWrap.style.transition='';
   envWrap.style.transform='';
   introBg.classList.remove('blurred');
@@ -1997,21 +2004,36 @@ function resetEnvelopeFly(){
   envProceedBtn.classList.remove('show');
 }
 
-function playEnvelopeOpenSequence(){
+function resetIntroPhase(){
+  lampRunToken++;
+  S.lampOn=false;S.userType=null;S.answers=[];S.step=0;S.selPh=null;S.galIdx=0;
+  phil.speedScale=2;philUpdateSpeedControl();
+  resetEnvelopeFly();
+  document.getElementById('ph-intro').classList.remove('lamp-on');
+  document.getElementById('intro-hint').style.opacity='';
+  document.getElementById('room-glow-overlay').classList.remove('on');
+  document.getElementById('intro-bg-day').classList.remove('on');
+  document.getElementById('twinkle-layer').classList.remove('off');
+  document.getElementById('table-light').classList.remove('on');
+  envWrap.classList.remove('illuminated');
+  document.getElementById('env-hint-lbl').classList.remove('show');
+}
+
+function playEnvelopeOpenSequence(run){
   // Let the centered envelope settle, then reveal the printed page with a
   // restrained upward drift while the envelope image dissolves beneath it.
   setTimeout(()=>{
-    if(!envFlying)return;
+    if(!envFlying||envRunToken!==run)return;
     document.getElementById('env-hint-lbl').classList.remove('show');
     envStageWrap.classList.add('dissolving');
     envStage3.classList.add('on');
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
-        if(!envFlying)return;
+        if(!envFlying||envRunToken!==run)return;
         document.getElementById('env-paper-layer').classList.add('revealed');
         // Give visitors time to read the letter before offering the next step.
         setTimeout(()=>{
-          if(envFlying)envProceedBtn.classList.add('show');
+          if(envFlying&&envRunToken===run)envProceedBtn.classList.add('show');
         },4000);
       });
     });
@@ -2021,6 +2043,7 @@ function playEnvelopeOpenSequence(){
 envWrap.addEventListener('click',()=>{
   if(!S.lampOn||envFlying) return; // can't open in dark, or mid-animation
   envFlying=true;
+  const run=++envRunToken;
 
   const rect=envWrap.getBoundingClientRect();
   const curCx=rect.left+rect.width/2, curCy=rect.top+rect.height/2;
@@ -2031,8 +2054,8 @@ envWrap.addEventListener('click',()=>{
   introBg.classList.add('blurred');
 
   setTimeout(()=>{
-    if(!envFlying)return;
-    playEnvelopeOpenSequence();
+    if(!envFlying||envRunToken!==run)return;
+    playEnvelopeOpenSequence(run);
   },800);
 });
 
