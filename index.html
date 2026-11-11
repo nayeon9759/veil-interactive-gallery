@@ -1261,7 +1261,7 @@ body.gallery-cursor-visible #cursor{visibility:hidden;}
       <p>빈 공간을 클릭한 뒤 마우스로 둘러봐요</p>
       <p>작품을 클릭하면 자세히 볼 수 있어요</p>
     </div>
-    <div class="gallery-esc-guide" id="gal-esc-guide" aria-hidden="true">ESC를 누르면 마우스 커서가 보여요</div>
+    <div class="gallery-esc-guide" id="gal-esc-guide" aria-hidden="true">다시 화면을 클릭하면 마우스로 시선을 움직일 수 있어요</div>
   </div>
   <div id="gal-art-panel">
     <div class="ap-num" id="ap-num"></div>
@@ -3941,13 +3941,23 @@ ugalCanvas.addEventListener('click',e=>{
 });
 const ugalPointerNdc={x:0,y:0};
 let ugalLastMousePosition=null;
+let ugalEscGuideTimer=null;
 document.addEventListener('pointerlockchange',()=>{
+  const wasLookEnabled=ugal.lookEnabled;
   ugal.lookEnabled=document.pointerLockElement===ugalCanvas;
   document.body.classList.toggle('gallery-pointer-locked',ugal.lookEnabled);
   ugalLastMousePosition=null;
   const escGuide=document.getElementById('gal-esc-guide');
   const inGallery=document.getElementById('ph-gallery').classList.contains('active');
-  if(escGuide){escGuide.classList.toggle('show',ugal.lookEnabled&&inGallery);escGuide.setAttribute('aria-hidden',String(!(ugal.lookEnabled&&inGallery)));}
+  if(ugalEscGuideTimer){clearTimeout(ugalEscGuideTimer);ugalEscGuideTimer=null;}
+  const showReturnHint=wasLookEnabled&&!ugal.lookEnabled&&inGallery;
+  if(escGuide){
+    escGuide.classList.toggle('show',showReturnHint);
+    escGuide.setAttribute('aria-hidden',String(!showReturnHint));
+    if(showReturnHint)ugalEscGuideTimer=setTimeout(()=>{
+      escGuide.classList.remove('show');escGuide.setAttribute('aria-hidden','true');ugalEscGuideTimer=null;
+    },3500);
+  }
 });
 document.addEventListener('mousemove',e=>{
   if(!ugal.controlsEnabled||!document.getElementById('ph-gallery').classList.contains('active')){
