@@ -1144,7 +1144,7 @@ body.gallery-cursor-visible #cursor{visibility:hidden;}
   </div>
   <div id="phil-result-card">
     <div class="prc-shell">
-      <p id="prc-door-countdown" class="prc-door-countdown" aria-live="polite">카드를 확인해 주세요 · 5초 후 문이 열려요</p>
+      <p id="prc-door-countdown" class="prc-door-countdown" aria-live="polite">카드를 확인해 주세요, 5초 후 문이 열려요</p>
       <button id="prc-card" type="button" aria-label="결과 카드 뒷면 보기" aria-pressed="false">
         <span class="prc-card-rotator">
           <span class="prc-face prc-front"><img id="prc-image" src="" alt=""></span>
@@ -2359,7 +2359,7 @@ const prcDoorCountdown=document.getElementById('prc-door-countdown');
 function renderDoorCountdown(){
   if(!prcDoorDeadline)return;
   const seconds=Math.max(1,Math.ceil((prcDoorDeadline-performance.now())/1000));
-  prcDoorCountdown.textContent='카드를 확인해 주세요 · '+seconds+'초 후 문이 열려요';
+  prcDoorCountdown.textContent='카드를 확인해 주세요, '+seconds+'초 후 문이 열려요';
 }
 function pauseGalleryDoor(){
   if(!prcDoorTimer||!prcDoorDeadline)return;
@@ -2408,7 +2408,7 @@ function clearGalleryDoorTimers(){
   clearInterval(prcDoorTickTimer);
   prcDoorTimer=null;prcDoorFinishTimer=null;
   prcDoorTickTimer=null;prcDoorDeadline=0;prcDoorRemainingMs=PRC_DOOR_WAIT_MS;prcDoorPaused=false;
-  prcDoorCountdown.textContent='카드를 확인해 주세요 · 5초 후 문이 열려요';
+  prcDoorCountdown.textContent='카드를 확인해 주세요, 5초 후 문이 열려요';
   phil.doorOpening=false;phil.doorOpen=0;phil.enteringGallery=false;
   if(phil.galleryDoor){phil.galleryDoor.left.rotation.y=0;phil.galleryDoor.right.rotation.y=0;}
 }
