@@ -1776,7 +1776,23 @@ function initSelfVeilPhase(){
 
 
 /* ============ PHASE SWITCH ============ */
+let ugalIdleReturnTimer=null;
+const UGAL_IDLE_RETURN_MS=10*60*1000;
+function ugalClearIdleReturnTimer(){
+  if(ugalIdleReturnTimer){clearTimeout(ugalIdleReturnTimer);ugalIdleReturnTimer=null;}
+}
+function ugalResetIdleReturnTimer(){
+  ugalClearIdleReturnTimer();
+  if(!document.getElementById('ph-gallery').classList.contains('active'))return;
+  ugalIdleReturnTimer=setTimeout(()=>{
+    ugalIdleReturnTimer=null;
+    if(!document.getElementById('ph-gallery').classList.contains('active'))return;
+    resetIntroPhase();
+    goTo('intro');
+  },UGAL_IDLE_RETURN_MS);
+}
 function goTo(id){
+  if(id!=='gallery')ugalClearIdleReturnTimer();
   const returningToIntro=id==='intro'&&document.getElementById('ph-ending').classList.contains('active');
   if(id!=='ending' && typeof endingRunToken!=='undefined') endingRunToken++;
   if(returningToIntro)resetIntroPhase();
@@ -4008,6 +4024,7 @@ document.addEventListener('mousemove',e=>{
     ugalLastMousePosition=null;
     return;
   }
+  ugalResetIdleReturnTimer();
   if(ugal.lookEnabled&&document.pointerLockElement===ugalCanvas){
     // Lower mouse-look sensitivity substantially for small, precise movements.
     ugal.targetYaw-=e.movementX*0.0002;
@@ -4022,6 +4039,7 @@ document.addEventListener('mousemove',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(!document.getElementById('ph-gallery').classList.contains('active'))return;
+  ugalResetIdleReturnTimer();
   if(e.code==='Escape'&&ugal.lookEnabled){
     e.preventDefault();
     document.exitPointerLock();
@@ -4030,6 +4048,9 @@ document.addEventListener('keydown',e=>{
   ugal.keys[e.code]=true;
 });
 document.addEventListener('keyup',e=>{ugal.keys[e.code]=false;});
+document.addEventListener('click',()=>{
+  if(document.getElementById('ph-gallery').classList.contains('active'))ugalResetIdleReturnTimer();
+});
 
 let ugalFirstGuideSeen=false;
 let ugalFirstGuideTimer=null;
@@ -4077,6 +4098,7 @@ document.getElementById('gal-info-btn').addEventListener('click',()=>{
 // the cross-shaped gallery once and places visitors at the stair threshold
 // or regular corridor entrance.
 function ugalEnter(fromDoor=false,fromLowerLanding=false){
+  ugalResetIdleReturnTimer();
   ugalArtPanel.classList.remove('show');
   ugalCtaGroup.classList.remove('show');
   ugal.currentArt=null;ugal.keys={};ugal.moveVelX=0;ugal.moveVelZ=0;ugal.yaw=0;ugal.pitch=0;ugal.targetYaw=0;ugal.targetPitch=0;ugal.controlsEnabled=true;ugal.lookEnabled=false;ugalLastMousePosition=null;
