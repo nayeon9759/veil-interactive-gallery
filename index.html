@@ -1859,37 +1859,41 @@ function goTo(id){
   }
 }
 
-/* positions #lamp-wrap using the blue placement marker baked into
-   the marker-box position measured earlier from a differently-sized
-   marked reference image, carried over as a fraction of that image's
-   own dimensions (same ~1.5 aspect ratio as this one, so the fraction
-   maps over cleanly) onto assets/house.png (1536x1024, no marker —
-   the real photo's own moon+cityscape is used directly now), growing
-   from the box's top-center so it stays anchored at the ceiling —
-   recomputed on resize so this holds at any viewport size */
+/* Position the lamp against the actual object-fit:cover crop of the
+   intro photo. Capping its size prevents it from growing excessively
+   on large displays while keeping its ceiling anchor and background
+   position aligned. */
 const HOUSE_IMG_W=1536, HOUSE_IMG_H=1024;
 const LAMP_BOX_X0=1155, LAMP_BOX_Y0=0, LAMP_BOX_W=178, LAMP_BOX_H=230;
+const LAMP_MAX_SCALE=1.4;
+const introBgImage=document.getElementById('intro-bg');
 function positionLampBox(){
-  const vw=window.innerWidth, vh=window.innerHeight;
-  const scale=Math.max(vw/HOUSE_IMG_W, vh/HOUSE_IMG_H);
-  const dispW=HOUSE_IMG_W*scale, dispH=HOUSE_IMG_H*scale;
-  const offX=(dispW-vw)/2, offY=(dispH-vh)/2;
-  const boxX=LAMP_BOX_X0*scale-offX, boxY=LAMP_BOX_Y0*scale-offY;
-  const boxW=LAMP_BOX_W*scale, boxH=LAMP_BOX_H*scale;
-  // back down by 1x from the previous 2x — grows from the box's
-  // top-center (the ceiling attachment point) so the mount stays put
-  const ENLARGE=1;
-  const cx=boxX+boxW/2;
-  const w=boxW*ENLARGE, h=boxH*ENLARGE;
+  const rect=introBgImage.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  const imageW=introBgImage.naturalWidth||HOUSE_IMG_W;
+  const imageH=introBgImage.naturalHeight||HOUSE_IMG_H;
+  const scale=Math.max(rect.width/imageW,rect.height/imageH);
+  const offX=(imageW*scale-rect.width)/2;
+  const offY=(imageH*scale-rect.height)/2;
+  const cx=rect.left+((LAMP_BOX_X0+LAMP_BOX_W/2)/HOUSE_IMG_W)*imageW*scale-offX;
+  const top=rect.top+(LAMP_BOX_Y0/HOUSE_IMG_H)*imageH*scale-offY;
+  const sizeScale=Math.min(scale*imageW/HOUSE_IMG_W,LAMP_MAX_SCALE);
+  const w=LAMP_BOX_W*sizeScale;
+  const h=LAMP_BOX_H*sizeScale;
   const wrap=document.getElementById('lamp-wrap');
   wrap.style.left=(cx-w/2)+'px';
-  wrap.style.top=boxY+'px';
+  wrap.style.top=top+'px';
   wrap.style.width=w+'px';
   wrap.style.height=h+'px';
 }
 
 positionLampBox();
-window.addEventListener('resize',positionLampBox);
+window.addEventListener('resize',positionLampBox,{passive:true});
+window.addEventListener('pageshow',positionLampBox);
+introBgImage.addEventListener('load',positionLampBox);
+if('ResizeObserver' in window){
+  new ResizeObserver(positionLampBox).observe(introBgImage);
+}
 
 /* scatters small flickering dots over the night skyline visible
    through the window in house.png (see the #twinkle-layer CSS
