@@ -1479,7 +1479,9 @@ window.addEventListener('pagehide',()=>{
   if(svCameraStream){svCameraStream.getTracks().forEach(track=>track.stop());svCameraStream=null;}
 });
 
+let activeSelfVeilCleanup=null;
 function initSelfVeilPhase(){
+  if(activeSelfVeilCleanup)activeSelfVeilCleanup();
   // A-key gate: without this, a bystander stepping into frame behind
   // the visitor would also make the mirror react — holding A is what
   // says "I mean to touch this", same reasoning as the old pinch
@@ -1601,7 +1603,9 @@ function initSelfVeilPhase(){
     // Detach this phase's video element, but keep the approved camera
     // stream for the next visitor/visit in the same open tab.
     video.srcObject=null;
+    if(activeSelfVeilCleanup===cleanup)activeSelfVeilCleanup=null;
   }
+  activeSelfVeilCleanup=cleanup;
 
   function completeReveal(){
     if(completed)return;
@@ -1776,23 +1780,20 @@ function initSelfVeilPhase(){
 
 
 /* ============ PHASE SWITCH ============ */
-let ugalIdleReturnTimer=null;
-const UGAL_IDLE_RETURN_MS=10*60*1000;
-function ugalClearIdleReturnTimer(){
-  if(ugalIdleReturnTimer){clearTimeout(ugalIdleReturnTimer);ugalIdleReturnTimer=null;}
-}
-function ugalResetIdleReturnTimer(){
-  ugalClearIdleReturnTimer();
-  if(!document.getElementById('ph-gallery').classList.contains('active'))return;
-  ugalIdleReturnTimer=setTimeout(()=>{
-    ugalIdleReturnTimer=null;
-    if(!document.getElementById('ph-gallery').classList.contains('active'))return;
-    resetIntroPhase();
+let siteIdleReturnTimer=null;
+const SITE_IDLE_RETURN_MS=10*60*1000;
+function siteResetIdleReturnTimer(){
+  if(siteIdleReturnTimer)clearTimeout(siteIdleReturnTimer);
+  siteIdleReturnTimer=setTimeout(()=>{
+    siteIdleReturnTimer=null;
+    const endingActive=document.getElementById('ph-ending').classList.contains('active');
+    if(!endingActive)resetIntroPhase();
     goTo('intro');
-  },UGAL_IDLE_RETURN_MS);
+  },SITE_IDLE_RETURN_MS);
 }
 function goTo(id){
-  if(id!=='gallery')ugalClearIdleReturnTimer();
+  siteResetIdleReturnTimer();
+  if(id!=='selfveil'&&activeSelfVeilCleanup)activeSelfVeilCleanup();
   const returningToIntro=id==='intro'&&document.getElementById('ph-ending').classList.contains('active');
   if(id!=='ending' && typeof endingRunToken!=='undefined') endingRunToken++;
   if(returningToIntro)resetIntroPhase();
@@ -1858,6 +1859,12 @@ function goTo(id){
     ugal.keys={};
   }
 }
+document.addEventListener('pointermove',siteResetIdleReturnTimer,{passive:true});
+document.addEventListener('keydown',siteResetIdleReturnTimer);
+document.addEventListener('pointerdown',siteResetIdleReturnTimer,{passive:true});
+document.addEventListener('wheel',siteResetIdleReturnTimer,{passive:true});
+window.addEventListener('pageshow',siteResetIdleReturnTimer);
+siteResetIdleReturnTimer();
 
 /* Position the lamp against the actual object-fit:cover crop of the
    intro photo. Capping its size prevents it from growing excessively
@@ -4031,7 +4038,6 @@ document.addEventListener('mousemove',e=>{
     ugalLastMousePosition=null;
     return;
   }
-  ugalResetIdleReturnTimer();
   if(ugal.lookEnabled&&document.pointerLockElement===ugalCanvas){
     // Lower mouse-look sensitivity substantially for small, precise movements.
     ugal.targetYaw-=e.movementX*0.0002;
@@ -4046,7 +4052,6 @@ document.addEventListener('mousemove',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(!document.getElementById('ph-gallery').classList.contains('active'))return;
-  ugalResetIdleReturnTimer();
   if(e.code==='Escape'&&ugal.lookEnabled){
     e.preventDefault();
     document.exitPointerLock();
@@ -4055,9 +4060,6 @@ document.addEventListener('keydown',e=>{
   ugal.keys[e.code]=true;
 });
 document.addEventListener('keyup',e=>{ugal.keys[e.code]=false;});
-document.addEventListener('click',()=>{
-  if(document.getElementById('ph-gallery').classList.contains('active'))ugalResetIdleReturnTimer();
-});
 
 let ugalFirstGuideSeen=false;
 let ugalFirstGuideTimer=null;
@@ -4105,7 +4107,6 @@ document.getElementById('gal-info-btn').addEventListener('click',()=>{
 // the cross-shaped gallery once and places visitors at the stair threshold
 // or regular corridor entrance.
 function ugalEnter(fromDoor=false,fromLowerLanding=false){
-  ugalResetIdleReturnTimer();
   ugalArtPanel.classList.remove('show');
   ugalCtaGroup.classList.remove('show');
   ugal.currentArt=null;ugal.keys={};ugal.moveVelX=0;ugal.moveVelZ=0;ugal.yaw=0;ugal.pitch=0;ugal.targetYaw=0;ugal.targetPitch=0;ugal.controlsEnabled=true;ugal.lookEnabled=false;ugalLastMousePosition=null;
